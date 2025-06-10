@@ -24,7 +24,7 @@ class AppLocalizations {
       'back_home': 'Back to Home',
       'login_page': 'Login Page',
       'register_page': 'Register Page',
-      'emil': 'emil',
+      'emil': 'Email',
       'login': 'Login',
       'go_to_login': 'Have email..? Login ',
       'go_to_register': "Don't have profile..? register ",

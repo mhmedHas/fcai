@@ -1,479 +1,249 @@
-// // // import 'dart:io';
-// // // import 'dart:typed_data';
-// // // import 'package:flutter/material.dart';
-// // // import 'package:image/image.dart' as img;
-// // // import 'package:tflite_flutter/tflite_flutter.dart';
-// // // import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
-
-// // // class ResultsScreen extends StatefulWidget {
-// // //   final File image;
-
-// // //   const ResultsScreen({super.key, required this.image});
-
-// // //   @override
-// // //   _ResultsScreenState createState() => _ResultsScreenState();
-// // // }
-
-// // // class _ResultsScreenState extends State<ResultsScreen> {
-// // //   String _resultText = "جاري التحليل...";
-// // //   tfl.Interpreter? _interpreter;
-// // //   bool _isModelLoaded = false;
-
-// // //   final List<String> _classNames = [
-// // //     'Foot',
-// // //     'Lumpy Skin',
-// // //     'Mouth',
-// // //     'Normal Skin',
-// // //   ];
-
-// // //   @override
-// // //   void initState() {
-// // //     super.initState();
-// // //     _initialize();
-// // //   }
-
-// // //   Future<void> _initialize() async {
-// // //     await _loadModel();
-// // //     if (_isModelLoaded) {
-// // //       await _classifyImage(widget.image);
-// // //     }
-// // //   }
-
-// // //   Future<void> _loadModel() async {
-// // //     try {
-// // //       _interpreter = await tfl.Interpreter.fromAsset(
-// // //         "assets/cattle_disease_model.tflite",
-// // //       );
-// // //       setState(() {
-// // //         _isModelLoaded = true;
-// // //       });
-// // //     } catch (e) {
-// // //       setState(() {
-// // //         _resultText = "❌ فشل تحميل النموذج: $e";
-// // //       });
-// // //     }
-// // //   }
-
-// // //   Future<void> _classifyImage(File imageFile) async {
-// // //     if (!_isModelLoaded || _interpreter == null) {
-// // //       setState(() {
-// // //         _resultText = "⚠️ النموذج لم يتم تحميله بعد!";
-// // //       });
-// // //       return;
-// // //     }
-
-// // //     try {
-// // //       Uint8List imageBytes = await imageFile.readAsBytes();
-// // //       img.Image? image = img.decodeImage(imageBytes);
-
-// // //       if (image == null) {
-// // //         throw "⚠️ فشل في قراءة الصورة";
-// // //       }
-
-// // //       image = img.copyResize(image, width: 224, height: 224);
-
-// // //       List<List<List<List<double>>>> input = [
-// // //         List.generate(
-// // //           224,
-// // //           (y) => List.generate(224, (x) {
-// // //             var pixel = image!.getPixel(
-// // //               x,
-// // //               y,
-// // //             ); // ✅ تم إضافة التأكيد على أن `image` ليس null
-// // //             return [(pixel.r) / 255.0, (pixel.g) / 255.0, (pixel.b) / 255.0];
-// // //           }),
-// // //         ),
-// // //       ];
-
-// // //       var output = List.filled(
-// // //         _classNames.length,
-// // //         0.0,
-// // //       ).reshape([1, _classNames.length]);
-
-// // //       _interpreter!.run(input, output);
-
-// // //       int predictedIndex = output[0].indexOf(
-// // //         output[0].reduce((a, b) => a > b ? a : b),
-// // //       );
-// // //       String predictedClass = _classNames[predictedIndex];
-// // //       double confidence = output[0][predictedIndex] * 100;
-
-// // //       setState(() {
-// // //         _resultText =
-// // //             "✅ التشخيص: $predictedClass\n🔹 الدقة: ${confidence.toStringAsFixed(2)}%";
-// // //       });
-// // //     } catch (e) {
-// // //       setState(() {
-// // //         _resultText = "❌ حدث خطأ أثناء التحليل: $e";
-// // //       });
-// // //     }
-// // //   }
-
-// // //   @override
-// // //   void dispose() {
-// // //     _interpreter?.close();
-// // //     super.dispose();
-// // //   }
-
-// // //   @override
-// // //   Widget build(BuildContext context) {
-// // //     return Scaffold(
-// // //       appBar: AppBar(
-// // //         title: const Text("نتائج الفحص"),
-// // //         backgroundColor: const Color(0xFF2E7D32),
-// // //       ),
-// // //       body: Center(
-// // //         child: Padding(
-// // //           padding: const EdgeInsets.all(20),
-// // //           child: Column(
-// // //             mainAxisAlignment: MainAxisAlignment.center,
-// // //             children: [
-// // //               Image.file(
-// // //                 widget.image,
-// // //                 width: 300,
-// // //                 height: 300,
-// // //                 fit: BoxFit.contain,
-// // //               ),
-// // //               const SizedBox(height: 20),
-// // //               Text(
-// // //                 _resultText,
-// // //                 textAlign: TextAlign.center,
-// // //                 style: const TextStyle(
-// // //                   fontSize: 20,
-// // //                   fontWeight: FontWeight.bold,
-// // //                 ),
-// // //               ),
-// // //             ],
-// // //           ),
-// // //         ),
-// // //       ),
-// // //     );
-// // //   }
-// // // }
-
-// // import 'dart:io';
-// // import 'package:flutter/material.dart';
-
-// // class ResultsScreen extends StatelessWidget {
-// //   final File image;
-
-// //   const ResultsScreen({super.key, required this.image});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Scaffold(
-// //       appBar: AppBar(
-// //         title: const Text(
-// //           "نتائج الفحص",
-// //           style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-// //         ),
-// //         backgroundColor: const Color(0xFF2E7D32),
-// //       ),
-// //       body: Container(
-// //         width: double.infinity,
-// //         height: double.infinity,
-// //         padding: const EdgeInsets.all(20),
-// //         decoration: const BoxDecoration(
-// //           gradient: LinearGradient(
-// //             colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-// //             begin: Alignment.topLeft,
-// //             end: Alignment.bottomRight,
-// //           ),
-// //         ),
-// //         child: Column(
-// //           mainAxisAlignment: MainAxisAlignment.center,
-// //           children: [
-// //             Expanded(child: Image.file(image, fit: BoxFit.contain)),
-// //             const SizedBox(height: 20),
-// //             Container(
-// //               width: double.infinity,
-// //               padding: const EdgeInsets.all(20),
-// //               margin: const EdgeInsets.symmetric(horizontal: 20),
-// //               decoration: BoxDecoration(
-// //                 color: Colors.white.withOpacity(0.8),
-// //                 borderRadius: BorderRadius.circular(15),
-// //                 boxShadow: [
-// //                   BoxShadow(
-// //                     color: Colors.black.withOpacity(0.2),
-// //                     blurRadius: 10,
-// //                     spreadRadius: 2,
-// //                   ),
-// //                 ],
-// //               ),
-// //               child: const Column(
-// //                 mainAxisSize: MainAxisSize.min,
-// //                 children: [
-// //                   Text(
-// //                     "المرض: جاري التحليل...",
-// //                     style: TextStyle(
-// //                       fontSize: 20,
-// //                       fontWeight: FontWeight.bold,
-// //                       color: Colors.black,
-// //                     ),
-// //                   ),
-// //                   SizedBox(height: 10),
-// //                   Text(
-// //                     "نسبة الثقة: 0%",
-// //                     style: TextStyle(
-// //                       fontSize: 20,
-// //                       fontWeight: FontWeight.bold,
-// //                       color: Colors.black,
-// //                     ),
-// //                   ),
-// //                 ],
-// //               ),
-// //             ),
-// //             const SizedBox(height: 30),
-// //             ElevatedButton(
-// //               onPressed: () {
-// //                 Navigator.popUntil(context, (route) => route.isFirst);
-// //               },
-// //               style: ElevatedButton.styleFrom(
-// //                 backgroundColor: Colors.red, // 🔴 لون الزر أحمر
-// //                 foregroundColor: Colors.white, // ⚪ لون النص أبيض
-// //                 padding: const EdgeInsets.symmetric(
-// //                   vertical: 15,
-// //                   horizontal: 40,
-// //                 ),
-// //                 textStyle: const TextStyle(fontSize: 18),
-// //               ),
-// //               child: const Text("العودة للصفحة الرئيسية"),
-// //             ),
-// //           ],
-// //         ),
-// //       ),
-// //     );
-// //   }
-// // }
-
-// // import 'dart:io';
-// // import 'package:cows_care/app_localization.dart';
-// // import 'package:flutter/material.dart';
-
-// // class ResultsScreen extends StatelessWidget {
-// //   final File image;
-
-// //   const ResultsScreen({super.key, required this.image, required String predictedClass, required double confidencePercentage});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Scaffold(
-// //       appBar: AppBar(
-// //         title: Text(
-// //           AppLocalizations.of(
-// //             context,
-// //           ).results, // "نتائج الفحص" أو "Diagnosis Results"
-// //           style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-// //         ),
-// //         backgroundColor: const Color(0xFF2E7D32),
-// //       ),
-// //       body: Column(
-// //         mainAxisAlignment: MainAxisAlignment.center,
-// //         children: [
-// //           Container(
-// //             width: double.infinity,
-// //             height: double.infinity,
-// //             padding: const EdgeInsets.all(20),
-// //             decoration: const BoxDecoration(
-// //               gradient: LinearGradient(
-// //                 colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-// //                 begin: Alignment.topLeft,
-// //                 end: Alignment.bottomRight,
-// //               ),
-// //             ),
-// //             child: Column(
-// //               mainAxisAlignment: MainAxisAlignment.center,
-// //               children: [
-// //                 Expanded(child: Image.file(image, fit: BoxFit.contain)),
-// //                 const SizedBox(height: 20),
-// //                 Container(
-// //                   width: double.infinity,
-// //                   padding: const EdgeInsets.all(20),
-// //                   margin: const EdgeInsets.symmetric(horizontal: 20),
-// //                   decoration: BoxDecoration(
-// //                     color: Colors.white.withOpacity(0.8),
-// //                     borderRadius: BorderRadius.circular(15),
-// //                     boxShadow: [
-// //                       BoxShadow(
-// //                         color: Colors.black.withOpacity(0.2),
-// //                         blurRadius: 10,
-// //                         spreadRadius: 2,
-// //                       ),
-// //                     ],
-// //                   ),
-// //                   child: Column(
-// //                     mainAxisSize: MainAxisSize.min,
-// //                     children: [
-// //                       Text(
-// //                         "${AppLocalizations.of(context).disease}", // "المرض" أو "Disease"
-// //                         style: const TextStyle(
-// //                           fontSize: 20,
-// //                           fontWeight: FontWeight.bold,
-// //                           color: Colors.black,
-// //                         ),
-// //                       ),
-
-// //                       const SizedBox(height: 10),
-// //                       Row(
-// //                         children: [
-// //                           Text(
-// //                             "${AppLocalizations.of(context).confidence}",
-// //                             style: const TextStyle(
-// //                               fontSize: 20,
-// //                               fontWeight: FontWeight.bold,
-// //                               color: Colors.black,
-// //                             ),
-// //                           ),
-// //                         ],
-// //                       ),
-// //                     ],
-// //                   ),
-// //                 ),
-// //                 const SizedBox(height: 30),
-// //                 ElevatedButton(
-// //                   onPressed: () {
-// //                     Navigator.popUntil(context, (route) => route.isFirst);
-// //                   },
-// //                   style: ElevatedButton.styleFrom(
-// //                     backgroundColor: Colors.red, // 🔴 لون الزر أحمر
-// //                     foregroundColor: Colors.white, // ⚪ لون النص أبيض
-// //                     padding: const EdgeInsets.symmetric(
-// //                       vertical: 15,
-// //                       horizontal: 40,
-// //                     ),
-// //                     textStyle: const TextStyle(fontSize: 18),
-// //                   ),
-// //                   child: Text(
-// //                     AppLocalizations.of(context).backHome,
-// //                   ), // "العودة للصفحة الرئيسية" أو "Back to Home"
-// //                 ),
-// //               ],
-// //             ),
-// //           ),
-// //           const SizedBox(height: 10),
-
-// //           Text(
-// //             "${AppLocalizations.of(context).loading}",
-// //             style: const TextStyle(
-// //               fontSize: 20,
-// //               fontWeight: FontWeight.bold,
-// //               color: Colors.black,
-// //             ),
-// //           ),
-// //         ],
-// //       ),
-// //     );
-// //   }
-// // }
 // import 'dart:io';
-// import 'package:cows_care/app_localization.dart';
 // import 'package:flutter/material.dart';
+// import 'package:fl_chart/fl_chart.dart';
 
 // class ResultsScreen extends StatelessWidget {
 //   final File image;
 //   final String predictedClass;
 //   final double confidencePercentage;
+//   final Map<String, double> diseaseProbabilities;
 
-//   const ResultsScreen(BuildContext context, {
-//     super.key,
+//   const ResultsScreen({
+//     Key? key,
 //     required this.image,
 //     required this.predictedClass,
 //     required this.confidencePercentage,
-//   });
+//     required this.diseaseProbabilities,
+//   }) : super(key: key);
 
 //   @override
 //   Widget build(BuildContext context) {
 //     return Scaffold(
+//       backgroundColor: const Color(0xFFF5F5F5),
 //       appBar: AppBar(
-//         title: Text(
-//           AppLocalizations.of(context).results, // "نتائج الفحص"
-//           style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-//         ),
-//         backgroundColor: const Color(0xFF2E7D32),
-//       ),
-//       body: Container(
-//         width: double.infinity,
-//         height: double.infinity,
-//         padding: const EdgeInsets.all(20),
-//         decoration: const BoxDecoration(
-//           gradient: LinearGradient(
-//             colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-//             begin: Alignment.topLeft,
-//             end: Alignment.bottomRight,
+//         title: const Text(
+//           'نتائج التشخيص',
+//           style: TextStyle(
+//             fontSize: 24,
+//             fontWeight: FontWeight.bold,
+//             color: Colors.white,
 //           ),
 //         ),
+//         centerTitle: true,
+//         backgroundColor: const Color(0xFF2E7D32),
+//         elevation: 0,
+//         iconTheme: const IconThemeData(color: Colors.white),
+//         shape: const RoundedRectangleBorder(
+//           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+//         ),
+//       ),
+//       body: SingleChildScrollView(
+//         padding: const EdgeInsets.all(20),
 //         child: Column(
 //           children: [
-//             Expanded(
-//               flex: 5,
+//             // صورة البقرة
+//             Container(
+//               decoration: BoxDecoration(
+//                 borderRadius: BorderRadius.circular(15),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.1),
+//                     blurRadius: 10,
+//                     spreadRadius: 2,
+//                   ),
+//                 ],
+//               ),
 //               child: ClipRRect(
 //                 borderRadius: BorderRadius.circular(15),
 //                 child: Image.file(
 //                   image,
-//                   fit: BoxFit.contain,
+//                   fit: BoxFit.cover,
 //                   width: double.infinity,
+//                   height: 250,
 //                 ),
 //               ),
 //             ),
-//             const SizedBox(height: 20),
-//             Expanded(
-//               flex: 4,
-//               child: Container(
-//                 width: double.infinity,
-//                 padding: const EdgeInsets.all(20),
-//                 decoration: BoxDecoration(
-//                   color: Colors.white.withOpacity(0.85),
-//                   borderRadius: BorderRadius.circular(15),
-//                   boxShadow: [
-//                     BoxShadow(
-//                       color: Colors.black.withOpacity(0.2),
-//                       blurRadius: 10,
-//                       spreadRadius: 2,
+//             const SizedBox(height: 25),
+
+//             // نتيجة التشخيص الرئيسية
+//             Container(
+//               padding: const EdgeInsets.all(20),
+//               decoration: BoxDecoration(
+//                 color: Colors.white,
+//                 borderRadius: BorderRadius.circular(15),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.05),
+//                     blurRadius: 8,
+//                     spreadRadius: 2,
+//                   ),
+//                 ],
+//               ),
+//               child: Column(
+//                 children: [
+//                   Text(
+//                     "التشخيص",
+//                     style: TextStyle(
+//                       fontSize: 18,
+//                       color: Colors.grey[700],
+//                       fontWeight: FontWeight.bold,
 //                     ),
-//                   ],
-//                 ),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       "${AppLocalizations.of(context).disease}: $predictedClass",
-//                       style: const TextStyle(
-//                         fontSize: 22,
-//                         fontWeight: FontWeight.bold,
-//                         color: Colors.black,
-//                       ),
+//                   ),
+//                   const SizedBox(height: 5),
+//                   Text(
+//                     predictedClass,
+//                     style: const TextStyle(
+//                       fontSize: 28,
+//                       fontWeight: FontWeight.bold,
+//                       color: Color(0xFF2E7D32),
 //                     ),
-//                     const SizedBox(height: 15),
-//                     Text(
-//                       "${AppLocalizations.of(context).confidence}: ${confidencePercentage.toStringAsFixed(2)}%",
-//                       style: const TextStyle(
-//                         fontSize: 20,
-//                         fontWeight: FontWeight.w500,
-//                         color: Colors.black87,
-//                       ),
-//                     ),
-//                     const Spacer(),
-//                     Center(
-//                       child: ElevatedButton(
-//                         onPressed: () {
-//                           Navigator.popUntil(context, (route) => route.isFirst);
-//                         },
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: Colors.red,
-//                           foregroundColor: Colors.white,
-//                           padding: const EdgeInsets.symmetric(
-//                             vertical: 15,
-//                             horizontal: 40,
-//                           ),
-//                           textStyle: const TextStyle(fontSize: 18),
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(12),
+//                     textAlign: TextAlign.center,
+//                   ),
+//                   const SizedBox(height: 15),
+//                   Stack(
+//                     alignment: Alignment.center,
+//                     children: [
+//                       SizedBox(
+//                         height: 120,
+//                         width: 120,
+//                         child: CircularProgressIndicator(
+//                           value: confidencePercentage / 100,
+//                           strokeWidth: 12,
+//                           backgroundColor: Colors.grey[200],
+//                           valueColor: const AlwaysStoppedAnimation<Color>(
+//                             Color(0xFF4CAF50),
 //                           ),
 //                         ),
-//                         child: Text(AppLocalizations.of(context).backHome),
+//                       ),
+//                       Text(
+//                         "${confidencePercentage.toStringAsFixed(1)}%",
+//                         style: const TextStyle(
+//                           fontSize: 24,
+//                           fontWeight: FontWeight.bold,
+//                           color: Colors.black87,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 10),
+//                   const Text(
+//                     "نسبة الثقة",
+//                     style: TextStyle(fontSize: 16, color: Colors.black54),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 25),
+
+//             // الرسم البياني الدائري
+//             Container(
+//               padding: const EdgeInsets.all(20),
+//               decoration: BoxDecoration(
+//                 color: Colors.white,
+//                 borderRadius: BorderRadius.circular(15),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.05),
+//                     blurRadius: 8,
+//                     spreadRadius: 2,
+//                   ),
+//                 ],
+//               ),
+//               child: Column(
+//                 children: [
+//                   const Text(
+//                     "توزيع الاحتمالات",
+//                     style: TextStyle(
+//                       fontSize: 20,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.black87,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 15),
+//                   SizedBox(
+//                     height: 250,
+//                     child: PieChart(
+//                       PieChartData(
+//                         sections: _buildPieSections(),
+//                         centerSpaceRadius: 50,
+//                         sectionsSpace: 2,
+//                         startDegreeOffset: -90,
+//                         pieTouchData: PieTouchData(
+//                           touchCallback:
+//                               (FlTouchEvent event, pieTouchResponse) {},
+//                         ),
 //                       ),
 //                     ),
-//                   ],
+//                   ),
+//                   const SizedBox(height: 10),
+//                   _buildLegend(),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 25),
+
+//             // نصائح وإرشادات
+//             Container(
+//               padding: const EdgeInsets.all(20),
+//               decoration: BoxDecoration(
+//                 color: Colors.white,
+//                 borderRadius: BorderRadius.circular(15),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.05),
+//                     blurRadius: 8,
+//                     spreadRadius: 2,
+//                   ),
+//                 ],
+//               ),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   const Text(
+//                     "إجراءات مقترحة",
+//                     style: TextStyle(
+//                       fontSize: 20,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.black87,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 10),
+//                   _buildActionItem(
+//                     Icons.medical_services,
+//                     "عزل الحيوان المصاب فورًا",
+//                   ),
+//                   _buildActionItem(Icons.people, "استشارة الطبيب البيطري"),
+//                   _buildActionItem(Icons.clean_hands, "تطهير المنطقة المحيطة"),
+//                   _buildActionItem(
+//                     Icons.monitor_heart,
+//                     "مراقبة القطيع لباقي الأعراض",
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 25),
+
+//             // زر العودة
+//             SizedBox(
+//               width: double.infinity,
+//               child: ElevatedButton(
+//                 onPressed:
+//                     () => Navigator.popUntil(context, (route) => route.isFirst),
+//                 style: ElevatedButton.styleFrom(
+//                   backgroundColor: const Color(0xFF2E7D32),
+//                   padding: const EdgeInsets.symmetric(vertical: 16),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   elevation: 3,
+//                 ),
+//                 child: const Text(
+//                   'العودة للصفحة الرئيسية',
+//                   style: TextStyle(
+//                     fontSize: 18,
+//                     color: Colors.white,
+//                     fontWeight: FontWeight.bold,
+//                   ),
 //                 ),
 //               ),
 //             ),
@@ -482,66 +252,305 @@
 //       ),
 //     );
 //   }
+
+//   List<PieChartSectionData> _buildPieSections() {
+//     final List<Color> colors = [
+//       const Color(0xFF4CAF50),
+//       const Color(0xFF2196F3),
+//       const Color(0xFFFFC107),
+//       const Color(0xFFF44336),
+//       const Color(0xFF9C27B0),
+//       const Color(0xFF607D8B),
+//     ];
+
+//     return diseaseProbabilities.entries.map((entry) {
+//       final index = diseaseProbabilities.keys.toList().indexOf(entry.key);
+//       return PieChartSectionData(
+//         value: entry.value,
+//         color: colors[index % colors.length],
+//         radius: 25,
+//         title: '${entry.value.toStringAsFixed(1)}%',
+//         titleStyle: const TextStyle(
+//           fontSize: 14,
+//           fontWeight: FontWeight.bold,
+//           color: Colors.white,
+//         ),
+//         badgeWidget: _badgeWidget(entry.key, colors[index % colors.length]),
+//         badgePositionPercentageOffset: 1.3,
+//       );
+//     }).toList();
+//   }
+
+//   Widget _badgeWidget(String text, Color color) {
+//     return Container(
+//       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+//       decoration: BoxDecoration(
+//         color: color,
+//         borderRadius: BorderRadius.circular(4),
+//       ),
+//       child: Text(
+//         text,
+//         style: const TextStyle(fontSize: 12, color: Colors.white),
+//         maxLines: 1,
+//         overflow: TextOverflow.ellipsis,
+//       ),
+//     );
+//   }
+
+//   Widget _buildLegend() {
+//     final List<Color> colors = [
+//       const Color(0xFF4CAF50),
+//       const Color(0xFF2196F3),
+//       const Color(0xFFFFC107),
+//       const Color(0xFFF44336),
+//       const Color(0xFF9C27B0),
+//       const Color(0xFF607D8B),
+//     ];
+
+//     return Wrap(
+//       spacing: 10,
+//       runSpacing: 10,
+//       children:
+//           diseaseProbabilities.entries.map((entry) {
+//             final index = diseaseProbabilities.keys.toList().indexOf(entry.key);
+//             return Row(
+//               mainAxisSize: MainAxisSize.min,
+//               children: [
+//                 Container(
+//                   width: 16,
+//                   height: 16,
+//                   decoration: BoxDecoration(
+//                     color: colors[index % colors.length],
+//                     shape: BoxShape.circle,
+//                   ),
+//                 ),
+//                 const SizedBox(width: 5),
+//                 Text(entry.key, style: const TextStyle(fontSize: 14)),
+//               ],
+//             );
+//           }).toList(),
+//     );
+//   }
+
+//   Widget _buildActionItem(IconData icon, String text) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(vertical: 8),
+//       child: Row(
+//         children: [
+//           Icon(
+//             icon,
+//             color: const Color(0xFF2E7D32),
+//           ), // ← هنا كان لازم تقفل Icon()
+//           const SizedBox(width: 10),
+//           Expanded(child: Text(text, style: const TextStyle(fontSize: 16))),
+//         ],
+//       ),
+//     );
+//   }
 // }
 import 'dart:io';
+import 'package:cows_care/chat.dart';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class ResultsScreen extends StatelessWidget {
   final File image;
   final String predictedClass;
   final double confidencePercentage;
+  final Map<String, double> diseaseProbabilities;
 
   const ResultsScreen({
     Key? key,
     required this.image,
     required this.predictedClass,
     required this.confidencePercentage,
+    required this.diseaseProbabilities,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text(
           'نتائج التشخيص',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF2E7D32),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Expanded(
+            // صورة البقرة
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: Image.file(
                   image,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   width: double.infinity,
+                  height: 250,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
+
+            // التشخيص + توزيع الاحتمالات جنب بعض
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 280,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          "التشخيص",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          predictedClass,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E7D32),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              width: 80,
+                              child: CircularProgressIndicator(
+                                value: confidencePercentage / 100,
+                                strokeWidth: 8,
+                                backgroundColor: Colors.grey[200],
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF4CAF50),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              "${confidencePercentage.toStringAsFixed(1)}%",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "نسبة الثقة",
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "توزيع الاحتمالات",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 150,
+                          child: PieChart(
+                            PieChartData(
+                              sections: _buildPieSections(),
+                              centerSpaceRadius: 30,
+                              sectionsSpace: 2,
+                              startDegreeOffset: -90,
+                              pieTouchData: PieTouchData(
+                                touchCallback:
+                                    (FlTouchEvent event, pieTouchResponse) {},
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildLegend(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 25),
+
+            // نصائح وإرشادات
             Container(
-              width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
                     spreadRadius: 2,
                   ),
                 ],
@@ -549,51 +558,162 @@ class ResultsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Text(
-                      "التشخيص: $predictedClass",
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                  const Text(
+                    "إجراءات مقترحة",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Center(
-                    child: Text(
-                      "نسبة الثقة: ${confidencePercentage.toStringAsFixed(2)}%",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.black87,
-                      ),
-                    ),
+                  _buildActionItem(
+                    Icons.medical_services,
+                    "عزل الحيوان المصاب فورًا",
+                  ),
+                  _buildActionItem(Icons.people, "استشارة الطبيب البيطري"),
+                  _buildActionItem(Icons.clean_hands, "تطهير المنطقة المحيطة"),
+                  _buildActionItem(
+                    Icons.monitor_heart,
+                    "مراقبة القطيع لباقي الأعراض",
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 25),
+
+            // زر العودة
             SizedBox(
-              width: double.infinity,
+              width: double.infinity / 2 - 10,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
+                onPressed:
+                    () => Navigator.popUntil(context, (route) => route.isFirst),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 3,
                 ),
                 child: const Text(
                   'العودة للصفحة الرئيسية',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity / 2 - 10,
+              child: ElevatedButton(
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) =>
+                                ChatBotScreen(diseaseName: predictedClass),
+                      ),
+                    ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 3,
+                ),
+                child: const Text(
+                  'chat bot ❄',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  List<PieChartSectionData> _buildPieSections() {
+    final List<Color> colors = [
+      const Color(0xFF4CAF50),
+      const Color(0xFFF44336),
+      const Color(0xFF2196F3),
+      const Color(0xFFFFC107),
+
+      const Color(0xFF9C27B0),
+      const Color(0xFF607D8B),
+    ];
+
+    return diseaseProbabilities.entries.map((entry) {
+      final index = diseaseProbabilities.keys.toList().indexOf(entry.key);
+      return PieChartSectionData(
+        value: entry.value,
+        color: colors[index % colors.length],
+        radius: 20,
+        title: '${entry.value.toStringAsFixed(1)}%',
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildLegend() {
+    final List<Color> colors = [
+      const Color(0xFF4CAF50),
+      const Color(0xFF2196F3),
+      const Color(0xFFFFC107),
+      const Color(0xFFF44336),
+      const Color(0xFF9C27B0),
+      const Color(0xFF607D8B),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 5,
+      children:
+          diseaseProbabilities.entries.map((entry) {
+            final index = diseaseProbabilities.keys.toList().indexOf(entry.key);
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: colors[index % colors.length],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(entry.key, style: const TextStyle(fontSize: 12)),
+              ],
+            );
+          }).toList(),
+    );
+  }
+
+  Widget _buildActionItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF2E7D32)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 16))),
+        ],
       ),
     );
   }

@@ -450,10 +450,12 @@ import 'package:http/http.dart' as http;
 class PredictionResult {
   final String predictedClass;
   final double confidencePercentage;
+  final Map<String, double>? diseaseProbabilities;
 
   PredictionResult({
     required this.predictedClass,
     required this.confidencePercentage,
+    this.diseaseProbabilities,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -461,6 +463,10 @@ class PredictionResult {
     return PredictionResult(
       predictedClass: data['predicted_class'],
       confidencePercentage: (data['confidence_percentage'] as num).toDouble(),
+      diseaseProbabilities:
+          data['probabilities'] != null
+              ? Map<String, double>.from(data['probabilities'])
+              : null,
     );
   }
 }
@@ -474,92 +480,64 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   File? _selectedImage;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
 
-    if (pickedFile != null) {
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _errorMessage = 'حدث خطأ أثناء اختيار الصورة';
       });
+      _showErrorDialog('حدث خطأ أثناء اختيار الصورة');
     }
   }
 
-  Future<PredictionResult?> sendImageForPrediction(File imageFile) async {
+  Future<PredictionResult?> _sendImageForPrediction(File imageFile) async {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.85.120:8000/predict'), // رابط السيرفر
+        Uri.parse('http://192.168.174.120:8000/predict'),
       );
 
       request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-        ), // <-- هنا التعديل
+        await http.MultipartFile.fromPath('file', imageFile.path),
       );
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        return PredictionResult.fromJson(responseData);
+        return PredictionResult.fromJson(json.decode(response.body));
       } else {
-        print('Failed to predict: ${response.statusCode}');
-        return null;
+        throw Exception('فشل في الحصول على النتيجة: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error: $e');
-      return null;
+      throw Exception('خطأ في الاتصال بالسيرفر: $e');
     }
   }
 
-  // Future<PredictionResult?> sendImageForPrediction(File imageFile) async {
-  //   try {
-  //     var request = http.MultipartRequest(
-  //       'POST',
-  //       Uri.parse('http://192.168.174.120:8000/predict'), // رابط السيرفر
-  //     );
-
-  //     request.files.add(
-  //       await http.MultipartFile.fromPath('image', imageFile.path),
-  //     );
-
-  //     var streamedResponse = await request.send();
-  //     var response = await http.Response.fromStream(streamedResponse);
-
-  //     print('Response status code: ${response.statusCode}');
-  //     print('Response body: ${response.body}');
-
-  //     if (response.statusCode == 200) {
-  //       final Map<String, dynamic> responseData = json.decode(response.body);
-  //       return PredictionResult.fromJson(responseData);
-  //     } else {
-  //       print('Failed to predict: ${response.statusCode}');
-  //       return null;
-  //     }
-  //   } catch (e) {
-  //     print('Error during prediction: $e');
-  //     return null;
-  //   }
-  // }
-
   void _navigateToResults(BuildContext context) async {
-    if (_selectedImage != null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+    if (_selectedImage == null) return;
 
-      final result = await sendImageForPrediction(_selectedImage!);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      Navigator.pop(context); // اغلاق الـ Loading
+    try {
+      final result = await _sendImageForPrediction(_selectedImage!);
+
+      if (!mounted) return;
 
       if (result != null) {
         Navigator.push(
@@ -570,31 +548,54 @@ class _CameraScreenState extends State<CameraScreen> {
                   image: _selectedImage!,
                   predictedClass: result.predictedClass,
                   confidencePercentage: result.confidencePercentage,
+                  diseaseProbabilities:
+                      result.diseaseProbabilities ??
+                      {
+                        result.predictedClass: result.confidencePercentage,
+                        'أمراض أخرى': 100 - result.confidencePercentage,
+                      },
                 ),
           ),
         );
       } else {
-        _showErrorDialog(
-          context,
-          'فشل في الحصول على النتيجة، تحقق من الاتصال أو السيرفر.',
-        );
+        throw Exception('لا توجد بيانات متاحة');
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+      _showErrorDialog(_errorMessage ?? 'حدث خطأ غير متوقع');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
-  void _showErrorDialog(BuildContext context, String message) {
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text('خطأ'),
+            title: const Text(
+              'خطأ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('موافق'),
+                child: const Text(
+                  'حسناً',
+                  style: TextStyle(color: Color(0xFF2E7D32)),
+                ),
               ),
             ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
           ),
     );
   }
@@ -604,107 +605,221 @@ class _CameraScreenState extends State<CameraScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'التقاط صورة',
+          'تشخيص أمراض الأبقار',
           style: TextStyle(
-            fontFamily: 'Amiri',
-            fontSize: 20,
+            fontFamily: 'Tajawal',
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
+        centerTitle: true,
         backgroundColor: const Color(0xFF2E7D32),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // _buildStyledButton(
-            //   icon: Icons.camera_alt,
-            //   label: 'التقاط صورة بالكاميرا',
-            //   onPressed: () => _pickImage(ImageSource.camera),
-            // ),
-            // const SizedBox(height: 15),
-            _buildStyledButton(
-              icon: Icons.upload_file,
-              label: 'اختيار صورة من المعرض',
-              onPressed: () => _pickImage(ImageSource.gallery),
+      ),
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
-            const SizedBox(height: 30),
-            if (_selectedImage != null) ...[
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(
-                      _selectedImage!,
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                    ),
-                  ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_errorMessage != null) ...[
+                  _buildErrorCard(),
+                  const SizedBox(height: 20),
+                ],
+                _buildImageSelectionCard(),
+                if (_selectedImage != null) ...[
+                  const SizedBox(height: 30),
+                  _buildImagePreview(),
+                  const SizedBox(height: 20),
+                  _buildDiagnoseButton(),
+                ],
+              ],
+            ),
+          ),
+          if (_isLoading) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSelectionCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            const Text(
+              'اختر طريقة تحميل الصورة',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildImageSourceButton(
+                  icon: Icons.camera_alt,
+                  label: 'الكاميرا',
+                  onPressed: () => _pickImage(ImageSource.camera),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildStyledButton(
-                icon: Icons.arrow_forward,
-                label: 'نتائج التشخيص',
-                onPressed: () => _navigateToResults(context),
-              ),
-            ],
+                _buildImageSourceButton(
+                  icon: Icons.photo_library,
+                  label: 'المعرض',
+                  onPressed: () => _pickImage(ImageSource.gallery),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStyledButton({
+  Widget _buildImageSourceButton({
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
   }) {
+    return Column(
+      children: [
+        IconButton(
+          icon: Icon(icon, size: 32, color: const Color(0xFF2E7D32)),
+          onPressed: onPressed,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            padding: const EdgeInsets.all(15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF2E7D32)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(color: Color(0xFF2E7D32))),
+      ],
+    );
+  }
+
+  Widget _buildImagePreview() {
+    return Column(
+      children: [
+        const Text(
+          'الصورة المختارة',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.file(
+              _selectedImage!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 200,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDiagnoseButton() {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onPressed,
+      child: ElevatedButton.icon(
+        onPressed: () => _navigateToResults(context),
+        icon: const Icon(Icons.medical_services, size: 24),
+        label: const Text('بدء التشخيص', style: TextStyle(fontSize: 18)),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF2E7D32),
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 5,
-          shadowColor: Colors.black26,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.4),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 26, color: Colors.white),
-            const SizedBox(width: 10),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 6,
+            ),
+            SizedBox(height: 20),
             Text(
-              label,
-              style: const TextStyle(fontSize: 18, color: Colors.white),
+              'جاري تحليل الصورة...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
