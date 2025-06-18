@@ -442,6 +442,7 @@
 // }
 import 'dart:convert';
 import 'dart:io';
+import 'package:cows_care/app_localization.dart';
 import 'package:cows_care/result.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -506,7 +507,7 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.174.120:8000/predict'),
+        Uri.parse('http://127.0.0.1:8000/predict'),
       );
 
       request.files.add(
@@ -604,8 +605,8 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'تشخيص أمراض الأبقار',
+        title: Text(
+          AppLocalizations.of(context).welcome,
           style: TextStyle(
             fontFamily: 'Tajawal',
             fontSize: 22,
@@ -687,8 +688,8 @@ class _CameraScreenState extends State<CameraScreen> {
         padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-            const Text(
-              'اختر طريقة تحميل الصورة',
+            Text(
+              AppLocalizations.of(context).captureImage,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -701,12 +702,12 @@ class _CameraScreenState extends State<CameraScreen> {
               children: [
                 _buildImageSourceButton(
                   icon: Icons.camera_alt,
-                  label: 'الكاميرا',
+                  label: AppLocalizations.of(context).capture,
                   onPressed: () => _pickImage(ImageSource.camera),
                 ),
                 _buildImageSourceButton(
                   icon: Icons.photo_library,
-                  label: 'المعرض',
+                  label: AppLocalizations.of(context).upload,
                   onPressed: () => _pickImage(ImageSource.gallery),
                 ),
               ],
@@ -745,8 +746,8 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget _buildImagePreview() {
     return Column(
       children: [
-        const Text(
-          'الصورة المختارة',
+        Text(
+          AppLocalizations.of(context).captureImage,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -787,7 +788,10 @@ class _CameraScreenState extends State<CameraScreen> {
       child: ElevatedButton.icon(
         onPressed: () => _navigateToResults(context),
         icon: const Icon(Icons.medical_services, size: 24),
-        label: const Text('بدء التشخيص', style: TextStyle(fontSize: 18)),
+        label: Text(
+          AppLocalizations.of(context).startDiagnosis,
+          style: TextStyle(fontSize: 18),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF2E7D32),
           foregroundColor: Colors.white,
@@ -804,7 +808,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget _buildLoadingOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.4),
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -814,7 +818,7 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
             SizedBox(height: 20),
             Text(
-              'جاري تحليل الصورة...',
+              AppLocalizations.of(context).analyzing,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,

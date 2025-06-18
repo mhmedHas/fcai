@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "659657515243",
+    "project_id": "fcai-514d7",
+    "storage_bucket": "fcai-514d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:659657515243:android:80104f22b0973194ea5eae",
+        "android_client_info": {
+          "package_name": "com.example.cows_care"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "659657515243-er3mla955se1l62v0n8qck034m51pqqo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtzQscpFc5RPveML5G2gQ0gu8U4s9Gl0s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "659657515243-er3mla955se1l62v0n8qck034m51pqqo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
